@@ -1,6 +1,7 @@
 """Minesweeper - Game engine.
 
 STORY-005: Implement cell interaction mechanics (reveal, flag, game over).
+STORY-006: Implement flood fill for empty cells (0 adjacent mines).
 STORY-007: First-click safety (mine placement after first click).
 STORY-008: Win/loss detection.
 
@@ -10,7 +11,8 @@ Orchestrates game state, mine placement, and win/loss detection.
 from __future__ import annotations
 
 import random
-from typing import List, Optional, Set, Tuple
+from collections import deque
+from typing import Deque, List, Optional, Set, Tuple
 
 from src.core.cell import CellState
 from src.core.grid import Grid
@@ -142,6 +144,10 @@ class GameEngine:
             self.game_over = True
             self._reveal_all_mines()
             return cell.state
+
+        # STORY-006: Flood fill for cells with 0 adjacent mines
+        if cell.adjacent_mines == 0:
+            self._flood_fill(row, col)
 
         return cell.state
 
@@ -277,3 +283,72 @@ class GameEngine:
                     self._game_over_mines.add((r, c))
                     if cell.state != CellState.FLAGGED:
                         cell.state = CellState.REVEALED
+
+    # STORY-006: Flood Fill Implementation
+
+    def _flood_fill(self, start_row: int, start_col: int) -> None:
+        """Iterative flood fill to reveal empty cells and their boundaries.
+
+        Uses a BFS (Breadth-First Search) approach with a deque to avoid
+        stack overflow on large grids.
+
+        When a cell with 0 adjacent mines is revealed, all adjacent cells
+        are recursively revealed. This process continues until cells with
+        non-zero mine counts are reached.
+
+        Flood fill:
+        - Only reveals hidden cells (not flagged cells)
+        - Stops at grid boundaries
+        - Stops at cells with non-zero adjacent mine counts (they are revealed
+          but not expanded further)
+        - Does not run during game over
+
+        Args:
+            start_row: Row index of the starting cell (must have 0 adjacent mines).
+            start_col: Column index of the starting cell.
+        """
+        # Don't flood fill during game over
+        if self.game_over:
+            return
+
+        # Use a deque for iterative BFS to avoid stack overflow
+        queue: Deque[Tuple[int, int]] = deque()
+        queue.append((start_row, start_col))
+
+        # Track visited cells to avoid infinite loops
+        visited: Set[Tuple[int, int]] = set()
+
+        while queue:
+            row, col = queue.popleft()
+
+            # Skip if already visited
+            if (row, col) in visited:
+                continue
+            visited.add((row, col))
+
+            cell = self.grid.get_cell(row, col)
+            if cell is None:
+                continue
+
+            # Skip flagged cells (AC5: Flood fill does not reveal flagged cells)
+            if cell.state == CellState.FLAGGED:
+                continue
+
+            # Reveal the cell (only if it's hidden)
+            if cell.state == CellState.HIDDEN:
+                cell.state = CellState.REVEALED
+
+            # If this cell has 0 adjacent mines, continue flood fill to neighbors
+            if cell.adjacent_mines == 0:
+                for dr in range(-1, 2):
+                    for dc in range(-1, 2):
+                        if dr == 0 and dc == 0:
+                            continue
+                        nr, nc = row + dr, col + dc
+                        if (nr, nc) not in visited:
+                            neighbor = self.grid.get_cell(nr, nc)
+                            if (
+                                neighbor is not None
+                                and neighbor.state == CellState.HIDDEN
+                            ):
+                                queue.append((nr, nc))
