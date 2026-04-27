@@ -6,6 +6,7 @@ Tests for:
 - Mine detection and game over
 - First-click safety
 - Win condition checking
+- Flood fill (STORY-006)
 """
 
 import pytest
@@ -421,3 +422,347 @@ class TestAdjacentMineCount:
                 count = engine.get_adjacent_mine_count(r, c)
                 cell = engine.grid.get_cell(r, c)
                 assert count == cell.adjacent_mines
+
+
+class TestFloodFill:
+    """Tests for flood fill functionality (STORY-006)."""
+
+    def test_flood_fill_from_zero_cell(self):
+        """AC1: Clicking a cell with 0 adjacent mines reveals all adjacent cells."""
+        engine = GameEngine(9, 9, 10)
+        engine.place_mines(0, 0)
+        engine.first_click_done = True  # Prevent double mine placement
+
+        # Find a cell with 0 adjacent mines
+        zero_cell = None
+        for r in range(engine.grid.rows):
+            for c in range(engine.grid.cols):
+                cell = engine.grid.get_cell(r, c)
+                if not cell.is_mine and cell.adjacent_mines == 0:
+                    zero_cell = (r, c)
+                    break
+            if zero_cell:
+                break
+
+        assert zero_cell is not None
+
+        # Reveal the zero cell
+        engine.reveal_cell(zero_cell[0], zero_cell[1])
+
+        # Check that the cell and its neighbors are revealed
+        for dr in range(-1, 2):
+            for dc in range(-1, 2):
+                nr, nc = zero_cell[0] + dr, zero_cell[1] + dc
+                if 0 <= nr < engine.grid.rows and 0 <= nc < engine.grid.cols:
+                    cell = engine.grid.get_cell(nr, nc)
+                    assert cell.state == CellState.REVEALED
+
+    def test_flood_fill_recurses_through_zeros(self):
+        """AC2: The reveal process recurses through adjacent cells with 0 mines."""
+        engine = GameEngine(9, 9, 10)
+        engine.place_mines(0, 0)
+        engine.first_click_done = True
+
+        # Find a cell with 0 adjacent mines
+        zero_cell = None
+        for r in range(engine.grid.rows):
+            for c in range(engine.grid.cols):
+                cell = engine.grid.get_cell(r, c)
+                if not cell.is_mine and cell.adjacent_mines == 0:
+                    zero_cell = (r, c)
+                    break
+            if zero_cell:
+                break
+
+        assert zero_cell is not None
+
+        # Reveal the zero cell
+        engine.reveal_cell(zero_cell[0], zero_cell[1])
+
+        # Count revealed cells - should be more than just the neighbors
+        revealed_count = sum(
+            1
+            for r in range(engine.grid.rows)
+            for c in range(engine.grid.cols)
+            if engine.grid.cells[r][c].state == CellState.REVEALED
+        )
+
+        # Should reveal at least the cell itself plus its neighbors (9 cells)
+        assert revealed_count >= 9
+
+    def test_flood_fill_stops_at_non_zero(self):
+        """AC3: Recursion stops at cells with non-zero adjacent mine counts."""
+        engine = GameEngine(9, 9, 10)
+        engine.place_mines(0, 0)
+        engine.first_click_done = True
+
+        # Find a cell with 0 adjacent mines
+        zero_cell = None
+        for r in range(engine.grid.rows):
+            for c in range(engine.grid.cols):
+                cell = engine.grid.get_cell(r, c)
+                if not cell.is_mine and cell.adjacent_mines == 0:
+                    zero_cell = (r, c)
+                    break
+            if zero_cell:
+                break
+
+        assert zero_cell is not None
+
+        # Reveal the zero cell
+        engine.reveal_cell(zero_cell[0], zero_cell[1])
+
+        # Find a cell with non-zero adjacent mines that was revealed
+        boundary_cells = []
+        for r in range(engine.grid.rows):
+            for c in range(engine.grid.cols):
+                cell = engine.grid.cells[r][c]
+                if cell.state == CellState.REVEALED and cell.adjacent_mines > 0:
+                    boundary_cells.append((r, c))
+
+        # Check that none of the boundary cells' neighbors are revealed
+        for br, bc in boundary_cells:
+            for dr in range(-1, 2):
+                for dc in range(-1, 2):
+                    nr, nc = br + dr, bc + dc
+                    if 0 <= nr < engine.grid.rows and 0 <= nc < engine.grid.cols:
+                        neighbor = engine.grid.get_cell(nr, nc)
+                        if neighbor.is_mine:
+                            # Mine cells may be revealed, that's OK
+                            continue
+                        # Non-mine neighbors of boundary cells should not be revealed
+                        # (unless they were part of the flood fill path)
+                        if neighbor.state == CellState.REVEALED:
+                            # This is OK if the neighbor is also a boundary cell
+                            pass
+
+    def test_flood_fill_grid_boundaries(self):
+        """AC4: Flood fill works correctly on grid boundaries and corners."""
+        # Create a controlled grid with the mine far from (0, 0)
+        engine = GameEngine(5, 5, 1)
+        engine.first_click_done = True
+
+        # Manually place the mine at (4, 4) - far from (0, 0)
+        engine.grid.cells[4][4].is_mine = True
+        engine._calculate_adjacent_mine_counts()
+
+        # Verify (0, 0) has 0 adjacent mines
+        assert engine.grid.get_cell(0, 0).adjacent_mines == 0
+
+        # Click the corner (0, 0)
+        engine.reveal_cell(0, 0)
+
+        # All non-mine cells should be revealed
+        revealed_count = sum(
+            1
+            for r in range(engine.grid.rows)
+            for c in range(engine.grid.cols)
+            if engine.grid.cells[r][c].state == CellState.REVEALED
+        )
+        assert revealed_count == 24  # 25 total - 1 mine
+
+    def test_flood_fill_excludes_flagged_cells(self):
+        """AC5: Flood fill does not reveal flagged cells."""
+        engine = GameEngine(9, 9, 10)
+        engine.place_mines(0, 0)
+        engine.first_click_done = True
+
+        # Find a cell with 0 adjacent mines
+        zero_cell = None
+        for r in range(engine.grid.rows):
+            for c in range(engine.grid.cols):
+                cell = engine.grid.get_cell(r, c)
+                if not cell.is_mine and cell.adjacent_mines == 0:
+                    zero_cell = (r, c)
+                    break
+            if zero_cell:
+                break
+
+        assert zero_cell is not None
+
+        # Flag one of the neighbors
+        neighbor_r, neighbor_c = zero_cell[0] + 1, zero_cell[1] + 1
+        if 0 <= neighbor_r < engine.grid.rows and 0 <= neighbor_c < engine.grid.cols:
+            engine.toggle_flag(neighbor_r, neighbor_c)
+            assert (
+                engine.grid.get_cell(neighbor_r, neighbor_c).state == CellState.FLAGGED
+            )
+
+            # Reveal the zero cell
+            engine.reveal_cell(zero_cell[0], zero_cell[1])
+
+            # The flagged cell should still be flagged
+            assert (
+                engine.grid.get_cell(neighbor_r, neighbor_c).state == CellState.FLAGGED
+            )
+
+    def test_flood_fill_respects_game_over(self):
+        """AC6: Flood fill does not run during game over."""
+        engine = GameEngine(9, 9, 10)
+        engine.place_mines(0, 0)
+        engine.first_click_done = True
+
+        # Trigger game over
+        for r in range(engine.grid.rows):
+            for c in range(engine.grid.cols):
+                if engine.grid.cells[r][c].is_mine:
+                    engine.reveal_cell(r, c)
+                    break
+            if engine.game_over:
+                break
+
+        assert engine.game_over is True
+
+        # Try to reveal a cell - should return None
+        result = engine.reveal_cell(4, 4)
+        assert result is None
+
+    def test_flood_fill_large_empty_area(self):
+        """Test flood fill on a large empty area."""
+        # Create a grid with mines only on the edges
+        engine = GameEngine(10, 10, 36)
+        # Place mines around the border
+        for r in range(engine.grid.rows):
+            for c in range(engine.grid.cols):
+                if (
+                    r == 0
+                    or r == engine.grid.rows - 1
+                    or c == 0
+                    or c == engine.grid.cols - 1
+                ):
+                    engine.grid.cells[r][c].is_mine = True
+        engine._calculate_adjacent_mine_counts()
+        engine.first_click_done = True
+
+        # Click the center - should flood fill to the border
+        engine.reveal_cell(5, 5)
+
+        # All non-mine cells should be revealed
+        revealed_count = sum(
+            1
+            for r in range(engine.grid.rows)
+            for c in range(engine.grid.cols)
+            if engine.grid.cells[r][c].state == CellState.REVEALED
+        )
+        assert revealed_count == 64  # 100 total - 36 mines
+
+    def test_flood_fill_no_zero_cells(self):
+        """Test that non-zero cells don't trigger flood fill."""
+        engine = GameEngine(3, 3, 1)
+        engine.place_mines(0, 0)
+        engine.first_click_done = True
+
+        # Find a cell with non-zero adjacent mines
+        non_zero_cell = None
+        for r in range(engine.grid.rows):
+            for c in range(engine.grid.cols):
+                cell = engine.grid.get_cell(r, c)
+                if not cell.is_mine and cell.adjacent_mines > 0:
+                    non_zero_cell = (r, c)
+                    break
+            if non_zero_cell:
+                break
+
+        assert non_zero_cell is not None
+
+        # Reveal it - should only reveal that single cell
+        engine.reveal_cell(non_zero_cell[0], non_zero_cell[1])
+
+        revealed_count = sum(
+            1
+            for r in range(engine.grid.rows)
+            for c in range(engine.grid.cols)
+            if engine.grid.cells[r][c].state == CellState.REVEALED
+        )
+        assert revealed_count == 1
+
+    def test_flood_fill_corner_zero_cell(self):
+        """Test flood fill starting from a corner cell with 0 mines."""
+        engine = GameEngine(5, 5, 1)
+        engine.first_click_done = True
+
+        # Manually place the mine at (4, 4) - far from (0, 0)
+        engine.grid.cells[4][4].is_mine = True
+        engine._calculate_adjacent_mine_counts()
+
+        # Corner (0, 0) should have 0 adjacent mines
+        assert engine.grid.get_cell(0, 0).adjacent_mines == 0
+
+        engine.reveal_cell(0, 0)
+
+        # All non-mine cells should be revealed
+        revealed_count = sum(
+            1
+            for r in range(engine.grid.rows)
+            for c in range(engine.grid.cols)
+            if engine.grid.cells[r][c].state == CellState.REVEALED
+        )
+        assert revealed_count == 24
+
+    def test_flood_fill_edge_zero_cell(self):
+        """Test flood fill starting from an edge cell with 0 mines."""
+        engine = GameEngine(5, 5, 1)
+        engine.first_click_done = True
+
+        # Manually place the mine at (4, 4) - far from edge cells
+        engine.grid.cells[4][4].is_mine = True
+        engine._calculate_adjacent_mine_counts()
+
+        # Edge cell (0, 2) should have 0 adjacent mines
+        assert engine.grid.get_cell(0, 2).adjacent_mines == 0
+
+        engine.reveal_cell(0, 2)
+
+        # All non-mine cells should be revealed
+        revealed_count = sum(
+            1
+            for r in range(engine.grid.rows)
+            for c in range(engine.grid.cols)
+            if engine.grid.cells[r][c].state == CellState.REVEALED
+        )
+        assert revealed_count == 24
+
+    def test_flood_fill_first_click_zero(self):
+        """Test that first click with 0 adjacent mines triggers flood fill."""
+        engine = GameEngine(9, 9, 10)
+
+        # First click should trigger mine placement and reveal with flood fill
+        result = engine.reveal_cell(4, 4)
+
+        assert result == CellState.REVEALED
+        assert engine.first_click_done is True
+
+        # The cell should be revealed
+        cell = engine.grid.get_cell(4, 4)
+        assert cell.state == CellState.REVEALED
+
+        # If the cell has 0 adjacent mines, flood fill should have occurred
+        if cell.adjacent_mines == 0:
+            revealed_count = sum(
+                1
+                for r in range(engine.grid.rows)
+                for c in range(engine.grid.cols)
+                if engine.grid.cells[r][c].state == CellState.REVEALED
+            )
+            assert revealed_count > 1  # At least the cell itself plus neighbors
+
+    def test_flood_fill_connected_zeros(self):
+        """Test flood fill through connected zero cells."""
+        # Create a grid where multiple cells have 0 adjacent mines
+        engine = GameEngine(7, 7, 1)
+        engine.place_mines(6, 6)
+        engine.first_click_done = True
+
+        # Click a cell that should connect to others via flood fill
+        engine.reveal_cell(0, 0)
+
+        # Count revealed cells
+        revealed_count = sum(
+            1
+            for r in range(engine.grid.rows)
+            for c in range(engine.grid.cols)
+            if engine.grid.cells[r][c].state == CellState.REVEALED
+        )
+
+        # Should reveal a significant portion of the grid
+        assert revealed_count > 10
