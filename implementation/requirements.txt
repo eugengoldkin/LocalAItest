@@ -1,0 +1,6 @@
+# Minesweeper - Requirements
+
+No external dependencies required.
+
+- Python 3.x (standard library only)
+- Tkinter (included with Python on most platforms)
