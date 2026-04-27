@@ -52,6 +52,35 @@ class Cell:
         self.is_mine = False
         self.adjacent_mines = 0
 
+    def to_dict(self) -> dict:
+        """Serialize the cell to a dictionary.
+        Returns:
+            A dictionary representation of the cell.
+        """
+        return {
+            "row": self.row,
+            "col": self.col,
+            "is_mine": self.is_mine,
+            "state": self.state.value,
+            "adjacent_mines": self.adjacent_mines,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> Cell:
+        """Deserialize a cell from a dictionary.
+
+        Args:
+            data: A dictionary with cell data.
+
+        Returns:
+            A new Cell instance with the deserialized data.
+        """
+        cell = cls(data["row"], data["col"])
+        cell.is_mine = data["is_mine"]
+        cell.state = CellState(data["state"])
+        cell.adjacent_mines = data["adjacent_mines"]
+        return cell
+
     def __repr__(self) -> str:
         """Return a string representation of the Cell.
 
@@ -62,3 +91,4 @@ class Cell:
             f"Cell({self.row},{self.col}) "
             f"mine={self.is_mine} state={self.state.value}"
         )
+

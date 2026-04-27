@@ -62,6 +62,37 @@ class Grid:
             for c in range(self.cols):
                 self.cells[r][c].reset()
 
+    def to_dict(self) -> dict:
+        """Serialize the grid to a dictionary.
+        Returns:
+            A dictionary representation of the grid.
+        """
+        return {
+            "rows": self.rows,
+            "cols": self.cols,
+            "cells": [
+                [cell.to_dict() for cell in row]
+                for row in self.cells
+            ],
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> Grid:
+        """Deserialize a grid from a dictionary.
+
+        Args:
+            data: A dictionary with grid data.
+
+        Returns:
+            A new Grid instance with the deserialized data.
+        """
+        grid = cls(data["rows"], data["cols"])
+        for r in range(data["rows"]):
+            for c in range(data["cols"]):
+                cell_data = data["cells"][r][c]
+                grid.cells[r][c] = Cell.from_dict(cell_data)
+        return grid
+
     def __repr__(self) -> str:
         """Return a string representation of the Grid.
 
@@ -69,3 +100,4 @@ class Grid:
             A string like 'Grid(9x9)'.
         """
         return f"Grid({self.rows}x{self.cols})"
+

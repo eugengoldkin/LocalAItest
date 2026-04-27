@@ -48,17 +48,42 @@ class GameEngine:
         self.game_won = False
 
     def place_mines(self, exclude_row: int, exclude_col: int) -> None:
-        """Place mines on the grid, excluding the first-click position.
+        """Place mines on the grid, excluding the first-click position and its neighbors.
+
+        Mines are placed randomly, avoiding the cell at (exclude_row, exclude_col)
+        and all of its 8 neighbors to ensure the first click is always safe.
 
         Args:
             exclude_row: Row index to exclude from mine placement.
             exclude_col: Column index to exclude from mine placement.
-
-        STORY-001-T2: Stub implementation for GameEngine.place_mines().
         """
-        # TODO: Implement mine placement (STORY-002)
-        pass
+        import random
 
+        # Build the set of excluded positions (first click + neighbors)
+        excluded = set()
+        for dr in range(-1, 2):
+            for dc in range(-1, 2):
+                nr, nc = exclude_row + dr, exclude_col + dc
+                if 0 <= nr < self.grid.rows and 0 <= nc < self.grid.cols:
+                    excluded.add((nr, nc))
+
+        # Collect all valid positions for mine placement
+        valid_positions = []
+        for r in range(self.grid.rows):
+            for c in range(self.grid.cols):
+                if (r, c) not in excluded:
+                    valid_positions.append((r, c))
+
+        # Ensure we don't try to place more mines than available positions
+        num_mines = min(self.total_mines, len(valid_positions))
+
+        # Randomly select positions for mines
+        selected_positions = random.sample(valid_positions, num_mines)
+        for r, c in selected_positions:
+            self.grid.cells[r][c].is_mine = True
+
+        # Calculate adjacent mine counts for all cells
+        self._calculate_adjacent_mine_counts()
     def reveal_cell(self, row: int, col: int) -> Optional[CellState]:
         """Reveal a cell at the given position.
 
@@ -108,9 +133,16 @@ class GameEngine:
             col: Column index of the cell.
 
         Returns:
-            The count of mines in the 8 neighboring cells.
-
-        STORY-001-T2: Stub implementation for GameEngine.get_adjacent_mine_count().
+            The count of mines in the 8 neighboring cells, or 0 if out of bounds.
         """
-        # TODO: Implement adjacent mine counting (STORY-002)
-        return 0
+        cell = self.grid.get_cell(row, col)
+        if cell is None:
+            return 0
+        return cell.adjacent_mines
+
+    def _calculate_adjacent_mine_counts(self) -> None:
+        """Calculate adjacent mine counts for all cells on the grid."""
+        for r in range(self.grid.rows):
+            for c in range(self.grid.cols):
+                self.grid.cells[r][c].adjacent_mines = self.get_adjacent_mine_count(r, c)
+

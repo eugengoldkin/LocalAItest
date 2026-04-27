@@ -7,7 +7,7 @@ Generated from: `minesweeper.md`
 | ID | Story Title | Priority | Status |
 |----|-------------|----------|--------|
 | STORY-001 | Project Setup | High | Completed |
-| STORY-002 | Game Model | High | Pending |
+| STORY-002 | Game Model | High | Completed |
 | STORY-003 | Difficulty Presets | High | Pending |
 | STORY-004 | Custom Difficulty | High | Pending |
 | STORY-005 | Cell Interaction | High | Pending |
