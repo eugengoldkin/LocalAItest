@@ -10,7 +10,7 @@ Generated from: `minesweeper.md`
 | STORY-002 | Game Model | High | Completed |
 | STORY-003 | Difficulty Presets | High | Pending |
 | STORY-004 | Custom Difficulty | High | Pending |
-| STORY-005 | Cell Interaction | High | Pending |
+| STORY-005 | Cell Interaction | High | Completed |
 | STORY-006 | Flood Fill | High | Pending |
 | STORY-007 | First Click Safety | High | Pending |
 | STORY-008 | Game End Conditions | High | Pending |

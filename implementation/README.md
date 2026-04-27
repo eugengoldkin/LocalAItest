@@ -107,3 +107,21 @@ Implementation is organized into stories documented in the `stories/` directory:
 ## License
 
 This project is open source.
+
+## Changelog
+
+### STORY-005: Cell Interaction
+- Implemented `GameEngine.reveal_cell()` - left-click reveal with first-click safety
+- Implemented `GameEngine.toggle_flag()` - right-click flag toggle
+- Implemented `GameEngine.check_win_condition()` - win detection
+- Implemented `GameEngine._reveal_all_mines()` - game over mine reveal
+- Implemented `GridFrame` with full grid rendering (Tkinter buttons)
+- Added left-click and right-click event bindings on grid cells
+- Added `update_cell()` for visual state changes (hidden/revealed/flagged)
+- Wired `MainWindow` to `GameEngine`, `GridFrame`, and `HUD`
+- Added `start_new_game()` and `change_difficulty()` in `MainWindow`
+- Added 27 unit tests in `tests/test_game_engine.py` (63 total tests pass)
+
+---
+
+

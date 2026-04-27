@@ -1,12 +1,16 @@
 """Minesweeper - Game engine.
 
-STORY-001-T2: Initialize Python project with __init__.py files and base modules.
+STORY-005: Implement cell interaction mechanics (reveal, flag, game over).
+STORY-007: First-click safety (mine placement after first click).
+STORY-008: Win/loss detection.
+
 Orchestrates game state, mine placement, and win/loss detection.
 """
 
 from __future__ import annotations
 
-from typing import Optional, Tuple
+import random
+from typing import List, Optional, Set, Tuple
 
 from src.core.cell import CellState
 from src.core.grid import Grid
@@ -21,6 +25,7 @@ class GameEngine:
         flags_placed: The current number of flags placed by the player.
         game_over: Whether the game has ended.
         game_won: Whether the player has won the game.
+        first_click_done: Whether the first click has occurred (mines placed).
     """
 
     def __init__(self, rows: int, cols: int, total_mines: int) -> None:
@@ -36,16 +41,20 @@ class GameEngine:
         self.flags_placed: int = 0
         self.game_over: bool = False
         self.game_won: bool = False
+        self.first_click_done: bool = False
+        self._game_over_mines: Set[Tuple[int, int]] = set()
 
     def reset(self) -> None:
         """Reset the game to its initial state.
 
-        STORY-001-T2: Stub implementation for GameEngine.reset().
+        STORY-005: Reset clears game state so a new game can start.
         """
         self.grid.reset()
         self.flags_placed = 0
         self.game_over = False
         self.game_won = False
+        self.first_click_done = False
+        self._game_over_mines = set()
 
     def place_mines(self, exclude_row: int, exclude_col: int) -> None:
         """Place mines on the grid, excluding the first-click position and its neighbors.
@@ -57,8 +66,6 @@ class GameEngine:
             exclude_row: Row index to exclude from mine placement.
             exclude_col: Column index to exclude from mine placement.
         """
-        import random
-
         # Build the set of excluded positions (first click + neighbors)
         excluded = set()
         for dr in range(-1, 2):
@@ -84,8 +91,16 @@ class GameEngine:
 
         # Calculate adjacent mine counts for all cells
         self._calculate_adjacent_mine_counts()
+
     def reveal_cell(self, row: int, col: int) -> Optional[CellState]:
         """Reveal a cell at the given position.
+
+        STORY-005-T1: Left-click event handler for revealing cells.
+        - Left-click on a hidden cell reveals it.
+        - Left-click on a revealed cell does nothing.
+        - Left-click on a flagged cell does nothing.
+        - If the cell is a mine, triggers game over.
+        - First click triggers mine placement (first-click safety).
 
         Args:
             row: Row index of the cell to reveal.
@@ -93,14 +108,50 @@ class GameEngine:
 
         Returns:
             The new state of the cell after revealing, or None if invalid.
-
-        STORY-001-T2: Stub implementation for GameEngine.reveal_cell().
         """
-        # TODO: Implement cell reveal logic (STORY-005)
-        return None
+        # Check if game is already over
+        if self.game_over:
+            return None
+
+        cell = self.grid.get_cell(row, col)
+        if cell is None:
+            return None
+
+        # Left-click on a revealed cell does nothing (AC2)
+        if cell.state == CellState.REVEALED:
+            return cell.state
+
+        # Flagged cells cannot be revealed by left-clicking (AC5)
+        if cell.state == CellState.FLAGGED:
+            return None
+
+        # First click safety: generate mines after first click (AC8, STORY-007)
+        if not self.first_click_done:
+            self.place_mines(row, col)
+            self.first_click_done = True
+
+        # Cell must be hidden to reveal it
+        if cell.state != CellState.HIDDEN:
+            return None
+
+        # Reveal the cell
+        cell.state = CellState.REVEALED
+
+        # Check if the revealed cell is a mine (AC3, AC7)
+        if cell.is_mine:
+            self.game_over = True
+            self._reveal_all_mines()
+            return cell.state
+
+        return cell.state
 
     def toggle_flag(self, row: int, col: int) -> bool:
         """Toggle the flag state of a cell.
+
+        STORY-005-T2: Right-click event handler for toggling flags.
+        - Right-click on a hidden cell → Flagged
+        - Right-click on a flagged cell → Hidden
+        - Revealed cells cannot be flagged
 
         Args:
             row: Row index of the cell.
@@ -108,22 +159,67 @@ class GameEngine:
 
         Returns:
             True if the flag was toggled successfully, False otherwise.
-
-        STORY-001-T2: Stub implementation for GameEngine.toggle_flag().
         """
-        # TODO: Implement flag toggling (STORY-005)
+        # Cannot toggle flags if game is over
+        if self.game_over:
+            return False
+
+        cell = self.grid.get_cell(row, col)
+        if cell is None:
+            return False
+
+        # Only hidden cells can be flagged
+        if cell.state == CellState.HIDDEN:
+            cell.state = CellState.FLAGGED
+            self.flags_placed += 1
+            return True
+        elif cell.state == CellState.FLAGGED:
+            cell.state = CellState.HIDDEN
+            self.flags_placed -= 1
+            return True
+
+        # Revealed cells cannot be flagged
         return False
 
     def check_win_condition(self) -> bool:
         """Check if the player has won the game.
 
+        STORY-005/STORY-008: Win condition check.
+        The player wins when all non-mine cells are revealed.
+
         Returns:
             True if all non-mine cells are revealed, False otherwise.
-
-        STORY-001-T2: Stub implementation for GameEngine.check_win_condition().
         """
-        # TODO: Implement win condition check (STORY-008)
+        if self.game_over:
+            return False
+
+        revealed_count = 0
+        total_cells = self.grid.rows * self.grid.cols
+        non_mine_cells = total_cells - self.total_mines
+
+        for r in range(self.grid.rows):
+            for c in range(self.grid.cols):
+                cell = self.grid.cells[r][c]
+                if cell.state == CellState.REVEALED and not cell.is_mine:
+                    revealed_count += 1
+
+        if revealed_count == non_mine_cells:
+            self.game_won = True
+            self.game_over = True
+            return True
+
         return False
+
+    def get_game_over_mines(self) -> Set[Tuple[int, int]]:
+        """Get the set of mine positions revealed on game over.
+
+        STORY-005-T3: Mine detection on click (game over condition).
+        Returns the positions of all mines that should be revealed.
+
+        Returns:
+            Set of (row, col) tuples for all mine positions.
+        """
+        return self._game_over_mines
 
     def get_adjacent_mine_count(self, row: int, col: int) -> int:
         """Get the number of adjacent mines for a cell.
@@ -144,5 +240,40 @@ class GameEngine:
         """Calculate adjacent mine counts for all cells on the grid."""
         for r in range(self.grid.rows):
             for c in range(self.grid.cols):
-                self.grid.cells[r][c].adjacent_mines = self.get_adjacent_mine_count(r, c)
+                self.grid.cells[r][c].adjacent_mines = self._count_adjacent_mines(r, c)
 
+    def _count_adjacent_mines(self, row: int, col: int) -> int:
+        """Count the number of mines adjacent to the cell at (row, col).
+
+        Args:
+            row: Row index of the cell.
+            col: Column index of the cell.
+
+        Returns:
+            The count of mines in the 8 neighboring cells.
+        """
+        count = 0
+        for dr in range(-1, 2):
+            for dc in range(-1, 2):
+                if dr == 0 and dc == 0:
+                    continue
+                nr, nc = row + dr, col + dc
+                cell = self.grid.get_cell(nr, nc)
+                if cell is not None and cell.is_mine:
+                    count += 1
+        return count
+
+    def _reveal_all_mines(self) -> None:
+        """Reveal all mines on the board for game over display.
+
+        STORY-005-T3: Clicking a mine reveals all mines on the board.
+        Mines that are not flagged are revealed as mines.
+        """
+        self._game_over_mines = set()
+        for r in range(self.grid.rows):
+            for c in range(self.grid.cols):
+                cell = self.grid.cells[r][c]
+                if cell.is_mine:
+                    self._game_over_mines.add((r, c))
+                    if cell.state != CellState.FLAGGED:
+                        cell.state = CellState.REVEALED
