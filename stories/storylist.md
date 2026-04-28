@@ -9,7 +9,7 @@ Generated from: `minesweeper.md`
 | STORY-001 | Project Setup | High | Completed |
 | STORY-002 | Game Model | High | Completed |
 | STORY-003 | Difficulty Presets | High | Completed |
-| STORY-004 | Custom Difficulty | High | Pending |
+| STORY-004 | Custom Difficulty | High | Completed |
 | STORY-005 | Cell Interaction | High | Completed |
 | STORY-006 | Flood Fill | High | Completed |
 | STORY-007 | First Click Safety | High | Completed |

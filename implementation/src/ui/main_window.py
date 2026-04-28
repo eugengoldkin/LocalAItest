@@ -1,6 +1,7 @@
 """Minesweeper - Main window UI.
 
 STORY-003: Difficulty presets selection UI (dropdown).
+STORY-004: Custom difficulty input UI integration.
 STORY-005: Wire GameEngine to UI components for cell interaction.
 STORY-009: Timer integration (stub for future).
 STORY-010: Mine counter integration (stub for future).
@@ -18,6 +19,10 @@ from typing import Optional
 
 from src.config.difficulty import DEFAULT_DIFFICULTY, DIFFICULTY_PRESETS
 from src.core.game import GameEngine
+from src.ui.custom_difficulty_dialog import (
+    CustomDifficultyDialog,
+    CustomDifficultyInput,
+)
 from src.ui.game_end_dialog import GameEndDialog
 from src.ui.grid_frame import GridFrame
 from src.ui.hud import HUD
@@ -109,7 +114,7 @@ class MainWindow:
         difficulty_combo = ttk.Combobox(
             difficulty_frame,
             textvariable=self.difficulty_var,
-            values=list(DIFFICULTY_PRESETS.keys()),
+            values=list(DIFFICULTY_PRESETS.keys()) + ["Custom"],
             state="readonly",
             width=15,
         )
@@ -136,12 +141,49 @@ class MainWindow:
         STORY-003: When the user selects a difficulty from the combobox,
         initialize a new game with those dimensions and mine count.
 
+        STORY-004: Handle "Custom" selection by showing the custom difficulty dialog.
+
         Args:
             event: The Tkinter combobox selection event.
         """
         selected = self.difficulty_var.get()
-        if selected in DIFFICULTY_PRESETS:
+        if selected == "Custom":
+            self._on_custom_difficulty()
+        elif selected in DIFFICULTY_PRESETS:
             self.change_difficulty(selected)
+
+    def _on_custom_difficulty(self) -> None:
+        """Handle Custom difficulty selection.
+
+        STORY-004: Show the custom difficulty dialog. If the user provides
+        valid inputs, initialize a new game with those parameters.
+        """
+        dialog = CustomDifficultyDialog(self.root)
+        self.root.wait_window(dialog)
+
+        if dialog.result is not None:
+            custom_input = dialog.result
+            self.difficulty = "Custom"
+            self.game_engine = GameEngine(
+                rows=custom_input.rows,
+                cols=custom_input.cols,
+                total_mines=custom_input.mines,
+            )
+            self.mine_counter_label.config(
+                text=f"Mines: {self.game_engine.total_mines}"
+            )
+            self.timer_label.config(text="Time: 0s")
+
+            # Destroy old grid frame and create a new one
+            if self.game_frame is not None:
+                self.game_frame.destroy()
+            self.game_frame = GridFrame(
+                self.root,
+                self.game_engine,
+                self.game_engine.grid.rows,
+                self.game_engine.grid.cols,
+            )
+            self.game_frame.pack(expand=True, fill=tk.BOTH, padx=10, pady=5)
 
     def run(self) -> None:
         """Start the Tkinter event loop."""
