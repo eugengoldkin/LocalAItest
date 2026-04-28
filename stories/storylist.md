@@ -14,7 +14,7 @@ Generated from: `minesweeper.md`
 | STORY-006 | Flood Fill | High | Completed |
 | STORY-007 | First Click Safety | High | Completed |
 | STORY-008 | Game End Conditions | High | Completed |
-| STORY-009 | Timer | Medium | Pending |
+| STORY-009 | Timer | Medium | Completed |
 | STORY-010 | Mine Counter | Medium | Pending |
 | STORY-011 | Difficulty Menu | Medium | Pending |
 | STORY-012 | New Game Button | Medium | Pending |

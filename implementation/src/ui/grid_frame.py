@@ -1,6 +1,7 @@
 """Minesweeper - Grid frame UI component.
 
 STORY-005: Implement grid rendering and cell interaction event bindings.
+STORY-009: Timer updates during gameplay.
 STORY-014: Visual rendering of the game grid with colors and icons.
 
 Tkinter frame that renders the Minesweeper game grid.
@@ -9,7 +10,7 @@ Tkinter frame that renders the Minesweeper game grid.
 from __future__ import annotations
 
 import tkinter as tk
-from typing import Optional
+from typing import Callable, Optional
 
 from src.config.constants import (
     BG_COLOR,
@@ -67,7 +68,13 @@ class GridFrame(tk.Frame):
         self.game_engine = game_engine
         self.cells: list[list[tk.Button]] = []
         # STORY-008: Callback for game end dialog
-        self.on_game_end: Optional[tk.Callable[[bool], None]] = None
+        self.on_game_end: Optional[Callable[[bool], None]] = None
+        # STORY-009: Callback for timer updates
+        self.on_timer_update: Optional[Callable[[int], None]] = None
+        # STORY-009: Callback for timer start (start periodic updates)
+        self.on_timer_start: Optional[Callable[[], None]] = None
+        # STORY-009: Callback for timer stop (cancel periodic updates)
+        self.on_timer_stop: Optional[Callable[[], None]] = None
 
         self.render()
 
@@ -229,18 +236,38 @@ class GridFrame(tk.Frame):
         if new_state is not None:
             self.update_cell(row, col)
 
+            # STORY-009: Update timer display
+            if self.on_timer_update:
+                self.on_timer_update(self.game_engine.get_elapsed_time())
+
+            # STORY-009: Start periodic timer updates when timer starts
+            if self.on_timer_start and self.game_engine.timer_running:
+                self.on_timer_start()
+
             # Check win condition after reveal (STORY-008)
             if not self.game_engine.game_over:
                 self.game_engine.check_win_condition()
                 if self.game_engine.game_won:
                     # Update all cells to show win state
                     self.update_all_cells()
+                    # STORY-009: Final timer update
+                    if self.on_timer_update:
+                        self.on_timer_update(self.game_engine.get_elapsed_time())
+                    # STORY-009: Stop periodic timer updates on win
+                    if self.on_timer_stop:
+                        self.on_timer_stop()
                     # STORY-008: Show win dialog
                     if self.on_game_end:
                         self.on_game_end(True)
             # STORY-008: Show loss dialog when game_over is True after reveal
+            # STORY-009: Final timer update on game over
             elif self.game_engine.game_over:
                 self.update_all_cells()
+                if self.on_timer_update:
+                    self.on_timer_update(self.game_engine.get_elapsed_time())
+                # STORY-009: Stop periodic timer updates on loss
+                if self.on_timer_stop:
+                    self.on_timer_stop()
                 if self.on_game_end:
                     self.on_game_end(False)
         else:

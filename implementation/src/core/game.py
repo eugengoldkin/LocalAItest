@@ -4,6 +4,7 @@ STORY-005: Implement cell interaction mechanics (reveal, flag, game over).
 STORY-006: Implement flood fill for empty cells (0 adjacent mines).
 STORY-007: First-click safety (mine placement after first click).
 STORY-008: Win/loss detection.
+STORY-009: Timer (starts on first click, stops on game end, MM:SS format).
 
 Orchestrates game state, mine placement, and win/loss detection.
 """
@@ -11,6 +12,7 @@ Orchestrates game state, mine placement, and win/loss detection.
 from __future__ import annotations
 
 import random
+import time
 from collections import deque
 from typing import Deque, List, Optional, Set, Tuple
 
@@ -44,21 +46,93 @@ class GameEngine:
         self.game_over: bool = False
         self.game_won: bool = False
         self.first_click_done: bool = False
+        # STORY-009: Timer state
+        self.timer_running: bool = False
+        self.elapsed_time: int = 0
+        self._start_time: float = 0.0
         self._game_over_mines: Set[Tuple[int, int]] = set()
         # STORY-008: Track correct and incorrect flags on game over
         self.correct_flags: Set[Tuple[int, int]] = set()
         self.incorrect_flags: Set[Tuple[int, int]] = set()
 
+    # STORY-009: Maximum timer value (999 seconds = 16:39)
+    MAX_TIME: int = 999
+
+    # STORY-009: Timer Methods
+
+    def _start_timer(self) -> None:
+        """Start the game timer.
+
+        STORY-009: Timer starts on first click.
+        """
+        if not self.timer_running:
+            self.timer_running = True
+            self._start_time = time.time()
+
+    def _stop_timer(self) -> None:
+        """Stop the game timer and calculate final elapsed time.
+
+        STORY-009: Timer stops when game ends (win or loss).
+        """
+        if self.timer_running:
+            # Calculate elapsed time since start
+            elapsed = int(time.time() - self._start_time)
+            self.elapsed_time = min(elapsed, self.MAX_TIME)
+            self.timer_running = False
+
+    def _update_timer(self) -> int:
+        """Update and return the current elapsed time.
+
+        STORY-009: Updates timer at least once per second.
+        Returns the current elapsed time in seconds, capped at MAX_TIME.
+
+        Returns:
+            Current elapsed time in seconds (0 if timer not running).
+        """
+        if self.timer_running:
+            elapsed = int(time.time() - self._start_time)
+            self.elapsed_time = min(elapsed, self.MAX_TIME)
+        return self.elapsed_time
+
+    def get_formatted_time(self) -> str:
+        """Format the elapsed time as MM:SS.
+
+        STORY-009: Format time as MM:SS (e.g., 01:23, 16:39).
+        Maximum value is 999 seconds (16:39).
+
+        Returns:
+            Formatted time string in MM:SS format.
+        """
+        current_time = self._update_timer()
+        minutes = current_time // 60
+        seconds = current_time % 60
+        return f"{minutes:02d}:{seconds:02d}"
+
+    def get_elapsed_time(self) -> int:
+        """Get the current elapsed time in seconds.
+
+        STORY-009: Returns current elapsed time, updating if timer is running.
+
+        Returns:
+            Elapsed time in seconds (capped at 999).
+        """
+        return self._update_timer()
+
     def reset(self) -> None:
         """Reset the game to its initial state.
 
         STORY-005: Reset clears game state so a new game can start.
+        STORY-009: Also resets the timer.
         """
         self.grid.reset()
         self.flags_placed = 0
         self.game_over = False
         self.game_won = False
         self.first_click_done = False
+        # STORY-009: Reset timer
+        self.timer_running = False
+        self.elapsed_time = 0
+        self._start_time = 0.0
         self._game_over_mines = set()
         # STORY-008: Clear flag tracking
         self.correct_flags = set()
@@ -137,6 +211,8 @@ class GameEngine:
         if not self.first_click_done:
             self.place_mines(row, col)
             self.first_click_done = True
+            # STORY-009: Start timer on first click
+            self._start_timer()
 
         # Cell must be hidden to reveal it
         if cell.state != CellState.HIDDEN:
@@ -149,6 +225,8 @@ class GameEngine:
         if cell.is_mine:
             self.game_over = True
             self._reveal_all_mines()
+            # STORY-009: Stop timer on game over (loss)
+            self._stop_timer()
             return cell.state
 
         # STORY-006: Flood fill for cells with 0 adjacent mines
@@ -218,6 +296,8 @@ class GameEngine:
         if revealed_count == non_mine_cells:
             self.game_won = True
             self.game_over = True
+            # STORY-009: Stop timer on win
+            self._stop_timer()
             return True
 
         return False

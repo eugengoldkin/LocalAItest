@@ -3,7 +3,7 @@
 STORY-003: Difficulty presets selection UI (dropdown).
 STORY-004: Custom difficulty input UI integration.
 STORY-005: Wire GameEngine to UI components for cell interaction.
-STORY-009: Timer integration (stub for future).
+STORY-009: Timer integration (updates on first click and game end).
 STORY-010: Mine counter integration (stub for future).
 STORY-012: New Game button (stub for future).
 STORY-008: Win/loss message dialog UI.
@@ -73,7 +73,7 @@ class MainWindow:
         # Timer label
         self.timer_label: tk.Label = tk.Label(
             self.hud_frame,
-            text="Time: 0s",
+            text="00:00",
             font=("Courier", 16),
         )
         self.timer_label.pack(side=tk.RIGHT, padx=10)
@@ -81,7 +81,43 @@ class MainWindow:
         # Game grid frame - STORY-014
         self.game_frame: Optional[GridFrame] = None
 
+        # STORY-009: Track whether we have a scheduled timer update
+        self._timer_update_id: Optional[int] = None
+
         self._build_ui()
+
+    # STORY-009: Timer display helpers
+
+    def _update_timer_display(self, elapsed_seconds: int) -> None:
+        """Update the timer label with the elapsed time.
+
+        Args:
+            elapsed_seconds: Current elapsed time in seconds.
+        """
+        capped_time = min(elapsed_seconds, GameEngine.MAX_TIME)
+        minutes = capped_time // 60
+        seconds = capped_time % 60
+        formatted_time = f"{minutes:02d}:{seconds:02d}"
+        self.timer_label.config(text=formatted_time)
+
+    def _schedule_timer_update(self) -> None:
+        """Schedule the next timer update using Tkinter's after().
+
+        Updates every 250ms for smooth display while the timer is running.
+        """
+        if self._timer_update_id is not None:
+            self.root.after_cancel(self._timer_update_id)
+            self._timer_update_id = None
+
+        if self.game_engine.timer_running:
+            self._timer_update_id = self.root.after(250, self._schedule_timer_update)
+            self._update_timer_display(self.game_engine.get_elapsed_time())
+
+    def _cancel_timer_update(self) -> None:
+        """Cancel any scheduled timer update."""
+        if self._timer_update_id is not None:
+            self.root.after_cancel(self._timer_update_id)
+            self._timer_update_id = None
 
     def _on_game_end(self, won: bool) -> None:
         """Handle game end by showing the appropriate dialog.
@@ -133,6 +169,11 @@ class MainWindow:
         )
         # STORY-008: Wire up game end callback
         self.game_frame.on_game_end = self._on_game_end
+        # STORY-009: Wire up timer update callback
+        self.game_frame.on_timer_update = self._update_timer_display
+        # STORY-009: Wire up timer start/stop callbacks
+        self.game_frame.on_timer_start = self._schedule_timer_update
+        self.game_frame.on_timer_stop = self._cancel_timer_update
         self.game_frame.pack(expand=True, fill=tk.BOTH, padx=10, pady=5)
 
     def _on_difficulty_changed(self, event: tk.Event) -> None:
@@ -172,7 +213,8 @@ class MainWindow:
             self.mine_counter_label.config(
                 text=f"Mines: {self.game_engine.total_mines}"
             )
-            self.timer_label.config(text="Time: 0s")
+            self.timer_label.config(text="00:00")
+            self._cancel_timer_update()
 
             # Destroy old grid frame and create a new one
             if self.game_frame is not None:
@@ -183,6 +225,11 @@ class MainWindow:
                 self.game_engine.grid.rows,
                 self.game_engine.grid.cols,
             )
+            self.game_frame.on_game_end = self._on_game_end
+            # STORY-009: Wire up timer update/start/stop callbacks
+            self.game_frame.on_timer_update = self._update_timer_display
+            self.game_frame.on_timer_start = self._schedule_timer_update
+            self.game_frame.on_timer_stop = self._cancel_timer_update
             self.game_frame.pack(expand=True, fill=tk.BOTH, padx=10, pady=5)
 
     def run(self) -> None:
@@ -191,16 +238,19 @@ class MainWindow:
 
     def destroy(self) -> None:
         """Destroy the Tkinter window and clean up resources."""
+        self._cancel_timer_update()
         self.root.destroy()
 
     def start_new_game(self) -> None:
         """Start a new game with the current difficulty settings.
 
         STORY-012: New Game button resets the game state and re-renders the grid.
+        STORY-009: Timer resets to 00:00 on new game.
         """
         self.game_engine.reset()
         self.mine_counter_label.config(text=f"Mines: {self.game_engine.total_mines}")
-        self.timer_label.config(text="Time: 0s")
+        self.timer_label.config(text="00:00")
+        self._cancel_timer_update()
 
         # Destroy old grid frame and create a new one
         if self.game_frame is not None:
@@ -211,6 +261,11 @@ class MainWindow:
             self.game_engine.grid.rows,
             self.game_engine.grid.cols,
         )
+        self.game_frame.on_game_end = self._on_game_end
+        # STORY-009: Wire up timer update/start/stop callbacks
+        self.game_frame.on_timer_update = self._update_timer_display
+        self.game_frame.on_timer_start = self._schedule_timer_update
+        self.game_frame.on_timer_stop = self._cancel_timer_update
         self.game_frame.pack(expand=True, fill=tk.BOTH, padx=10, pady=5)
 
     def change_difficulty(self, difficulty_name: str) -> None:
@@ -232,7 +287,8 @@ class MainWindow:
         )
 
         self.mine_counter_label.config(text=f"Mines: {self.game_engine.total_mines}")
-        self.timer_label.config(text="Time: 0s")
+        self.timer_label.config(text="00:00")
+        self._cancel_timer_update()
 
         # Destroy old grid frame and create a new one
         if self.game_frame is not None:
@@ -243,4 +299,9 @@ class MainWindow:
             self.game_engine.grid.rows,
             self.game_engine.grid.cols,
         )
+        self.game_frame.on_game_end = self._on_game_end
+        # STORY-009: Wire up timer update/start/stop callbacks
+        self.game_frame.on_timer_update = self._update_timer_display
+        self.game_frame.on_timer_start = self._schedule_timer_update
+        self.game_frame.on_timer_stop = self._cancel_timer_update
         self.game_frame.pack(expand=True, fill=tk.BOTH, padx=10, pady=5)
