@@ -1,5 +1,6 @@
 """Minesweeper - Main window UI.
 
+STORY-003: Difficulty presets selection UI (dropdown).
 STORY-005: Wire GameEngine to UI components for cell interaction.
 STORY-009: Timer integration (stub for future).
 STORY-010: Mine counter integration (stub for future).
@@ -12,6 +13,7 @@ The main Tkinter application window.
 from __future__ import annotations
 
 import tkinter as tk
+import tkinter.ttk as ttk
 from typing import Optional
 
 from src.config.difficulty import DEFAULT_DIFFICULTY, DIFFICULTY_PRESETS
@@ -30,6 +32,7 @@ class MainWindow:
         grid_frame: Frame containing the game grid.
         hud_frame: Frame containing the HUD (mine counter, timer).
         difficulty: Currently selected difficulty preset name.
+        difficulty_var: Tkinter variable for the difficulty dropdown.
     """
 
     def __init__(self) -> None:
@@ -70,7 +73,7 @@ class MainWindow:
         )
         self.timer_label.pack(side=tk.RIGHT, padx=10)
 
-                # Game grid frame - STORY-014
+        # Game grid frame - STORY-014
         self.game_frame: Optional[GridFrame] = None
 
         self._build_ui()
@@ -88,13 +91,35 @@ class MainWindow:
         dialog.grab_set()  # Modal: block interaction with main window
 
     def _build_ui(self) -> None:
-
-    def _build_ui(self) -> None:
         """Build the initial UI structure.
 
-        Creates the game grid frame and packs all UI components.
+        Creates the difficulty selector, game grid frame, and packs all UI components.
         """
-                # Create game grid frame with game engine reference
+        # STORY-003: Difficulty selector dropdown
+        difficulty_frame = tk.Frame(self.root)
+        difficulty_frame.pack(fill=tk.X, padx=10, pady=5)
+
+        tk.Label(
+            difficulty_frame,
+            text="Difficulty:",
+            font=("Arial", 10),
+        ).pack(side=tk.LEFT, padx=(0, 5))
+
+        self.difficulty_var = tk.StringVar(value=self.difficulty)
+        difficulty_combo = ttk.Combobox(
+            difficulty_frame,
+            textvariable=self.difficulty_var,
+            values=list(DIFFICULTY_PRESETS.keys()),
+            state="readonly",
+            width=15,
+        )
+        difficulty_combo.pack(side=tk.LEFT, padx=(0, 10))
+        difficulty_combo.bind(
+            "<<ComboboxSelected>>",
+            self._on_difficulty_changed,
+        )
+
+        # Create game grid frame with game engine reference
         self.game_frame = GridFrame(
             self.root,
             self.game_engine,
@@ -104,6 +129,19 @@ class MainWindow:
         # STORY-008: Wire up game end callback
         self.game_frame.on_game_end = self._on_game_end
         self.game_frame.pack(expand=True, fill=tk.BOTH, padx=10, pady=5)
+
+    def _on_difficulty_changed(self, event: tk.Event) -> None:
+        """Handle difficulty selection from the dropdown.
+
+        STORY-003: When the user selects a difficulty from the combobox,
+        initialize a new game with those dimensions and mine count.
+
+        Args:
+            event: The Tkinter combobox selection event.
+        """
+        selected = self.difficulty_var.get()
+        if selected in DIFFICULTY_PRESETS:
+            self.change_difficulty(selected)
 
     def run(self) -> None:
         """Start the Tkinter event loop."""
