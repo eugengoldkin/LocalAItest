@@ -14,16 +14,21 @@ from typing import Optional
 from src.config.constants import (
     BG_COLOR,
     BORDER_COLOR,
+    CELL_CORRECT_FLAG_MINE_COLOR,
+    CELL_CORRECTLY_FLAGGED_COLOR,
     CELL_FLAGGED_COLOR,
     CELL_FONT,
     CELL_HIDDEN_COLOR,
+    CELL_INCORRECTLY_FLAGGED_COLOR,
     CELL_MINE_COLOR,
     CELL_MINE_REVEALED_COLOR,
     CELL_REVEALED_COLOR,
+    CELL_WRONG_FLAG_MINE_COLOR,
     FRAME_BG,
     NUMBER_COLORS,
 )
 from src.core.cell import CellState
+from src.ui.game_end_dialog import GameEndDialog
 
 
 class GridFrame(tk.Frame):
@@ -61,6 +66,8 @@ class GridFrame(tk.Frame):
         self.cell_size: int = cell_size
         self.game_engine = game_engine
         self.cells: list[list[tk.Button]] = []
+        # STORY-008: Callback for game end dialog
+        self.on_game_end: Optional[tk.Callable[[bool], None]] = None
 
         self.render()
 
@@ -142,14 +149,38 @@ class GridFrame(tk.Frame):
                     text="",
                 )
         elif cell.state == CellState.FLAGGED:
-            # Flagged cell
-            btn.config(
-                bg=CELL_FLAGGED_COLOR,
-                fg="red",
-                relief=tk.RAISED,
-                bd=2,
-                text="F",
-            )
+            # Check for game over flag feedback (STORY-008)
+            flag_feedback = None
+            if self.game_engine.game_over:
+                flag_feedback = self.game_engine.get_flag_feedback(row, col)
+
+            if flag_feedback == "correct":
+                # Correctly flagged mine: green background, black mine symbol
+                btn.config(
+                    bg=CELL_CORRECTLY_FLAGGED_COLOR,
+                    fg=CELL_CORRECT_FLAG_MINE_COLOR,
+                    relief=tk.RAISED,
+                    bd=2,
+                    text="F",
+                )
+            elif flag_feedback == "incorrect":
+                # Incorrectly flagged cell: red background, red X
+                btn.config(
+                    bg=CELL_INCORRECTLY_FLAGGED_COLOR,
+                    fg="red",
+                    relief=tk.SUNKEN,
+                    bd=1,
+                    text="X",
+                )
+            else:
+                # Normal flagged cell
+                btn.config(
+                    bg=CELL_FLAGGED_COLOR,
+                    fg="red",
+                    relief=tk.RAISED,
+                    bd=2,
+                    text="F",
+                )
         elif cell.state == CellState.HIDDEN:
             # Hidden cell
             btn.config(
@@ -204,12 +235,23 @@ class GridFrame(tk.Frame):
                 if self.game_engine.game_won:
                     # Update all cells to show win state
                     self.update_all_cells()
+                    # STORY-008: Show win dialog
+                    if self.on_game_end:
+                        self.on_game_end(True)
+            # STORY-008: Show loss dialog when game_over is True after reveal
+            elif self.game_engine.game_over:
+                self.update_all_cells()
+                if self.on_game_end:
+                    self.on_game_end(False)
         else:
             # Check win condition even if no state change (for flood fill scenarios)
             if not self.game_engine.game_over:
                 self.game_engine.check_win_condition()
                 if self.game_engine.game_won:
                     self.update_all_cells()
+                    # STORY-008: Show win dialog
+                    if self.on_game_end:
+                        self.on_game_end(True)
 
     def on_right_click(self, row: int, col: int) -> None:
         """Handle right-click event on a cell.

@@ -45,6 +45,9 @@ class GameEngine:
         self.game_won: bool = False
         self.first_click_done: bool = False
         self._game_over_mines: Set[Tuple[int, int]] = set()
+        # STORY-008: Track correct and incorrect flags on game over
+        self.correct_flags: Set[Tuple[int, int]] = set()
+        self.incorrect_flags: Set[Tuple[int, int]] = set()
 
     def reset(self) -> None:
         """Reset the game to its initial state.
@@ -57,6 +60,9 @@ class GameEngine:
         self.game_won = False
         self.first_click_done = False
         self._game_over_mines = set()
+        # STORY-008: Clear flag tracking
+        self.correct_flags = set()
+        self.incorrect_flags = set()
 
     def place_mines(self, exclude_row: int, exclude_col: int) -> None:
         """Place mines on the grid, excluding the first-click position and its neighbors.
@@ -216,6 +222,26 @@ class GameEngine:
 
         return False
 
+    def get_flag_feedback(self, row: int, col: int) -> Optional[str]:
+        """Get the visual feedback for a flagged cell on game over.
+
+        STORY-008: Determines if a flagged cell is correct or incorrect.
+
+        Args:
+            row: Row index of the cell.
+            col: Column index of the cell.
+
+        Returns:
+            "correct" if the cell is a correctly flagged mine,
+            "incorrect" if the cell is incorrectly flagged,
+            None if the cell is not flagged.
+        """
+        if (row, col) in self.correct_flags:
+            return "correct"
+        elif (row, col) in self.incorrect_flags:
+            return "incorrect"
+        return None
+
     def get_game_over_mines(self) -> Set[Tuple[int, int]]:
         """Get the set of mine positions revealed on game over.
 
@@ -274,8 +300,11 @@ class GameEngine:
 
         STORY-005-T3: Clicking a mine reveals all mines on the board.
         Mines that are not flagged are revealed as mines.
+        STORY-008: Track correct and incorrect flags for visual feedback.
         """
         self._game_over_mines = set()
+        self.correct_flags = set()
+        self.incorrect_flags = set()
         for r in range(self.grid.rows):
             for c in range(self.grid.cols):
                 cell = self.grid.cells[r][c]
@@ -283,6 +312,15 @@ class GameEngine:
                     self._game_over_mines.add((r, c))
                     if cell.state != CellState.FLAGGED:
                         cell.state = CellState.REVEALED
+                # STORY-008: Track incorrectly flagged cells (flags on non-mines)
+                elif cell.state == CellState.FLAGGED:
+                    self.incorrect_flags.add((r, c))
+
+        # STORY-008: Mark correctly flagged mines
+        for mine_r, mine_c in self._game_over_mines:
+            cell = self.grid.get_cell(mine_r, mine_c)
+            if cell is not None and cell.state == CellState.FLAGGED:
+                self.correct_flags.add((mine_r, mine_c))
 
     # STORY-006: Flood Fill Implementation
 

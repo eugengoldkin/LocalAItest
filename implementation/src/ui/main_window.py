@@ -4,6 +4,7 @@ STORY-005: Wire GameEngine to UI components for cell interaction.
 STORY-009: Timer integration (stub for future).
 STORY-010: Mine counter integration (stub for future).
 STORY-012: New Game button (stub for future).
+STORY-008: Win/loss message dialog UI.
 
 The main Tkinter application window.
 """
@@ -15,6 +16,7 @@ from typing import Optional
 
 from src.config.difficulty import DEFAULT_DIFFICULTY, DIFFICULTY_PRESETS
 from src.core.game import GameEngine
+from src.ui.game_end_dialog import GameEndDialog
 from src.ui.grid_frame import GridFrame
 from src.ui.hud import HUD
 
@@ -68,23 +70,39 @@ class MainWindow:
         )
         self.timer_label.pack(side=tk.RIGHT, padx=10)
 
-        # Game grid frame - STORY-014
+                # Game grid frame - STORY-014
         self.game_frame: Optional[GridFrame] = None
 
         self._build_ui()
+
+    def _on_game_end(self, won: bool) -> None:
+        """Handle game end by showing the appropriate dialog.
+
+        STORY-008: Show win/loss dialog when the game ends.
+        """
+        dialog = GameEndDialog(
+            self.root,
+            won=won,
+            result_callback=self.start_new_game,
+        )
+        dialog.grab_set()  # Modal: block interaction with main window
+
+    def _build_ui(self) -> None:
 
     def _build_ui(self) -> None:
         """Build the initial UI structure.
 
         Creates the game grid frame and packs all UI components.
         """
-        # Create game grid frame with game engine reference
+                # Create game grid frame with game engine reference
         self.game_frame = GridFrame(
             self.root,
             self.game_engine,
             self.game_engine.grid.rows,
             self.game_engine.grid.cols,
         )
+        # STORY-008: Wire up game end callback
+        self.game_frame.on_game_end = self._on_game_end
         self.game_frame.pack(expand=True, fill=tk.BOTH, padx=10, pady=5)
 
     def run(self) -> None:
