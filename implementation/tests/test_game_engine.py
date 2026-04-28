@@ -276,6 +276,176 @@ class TestFirstClickSafety:
         )
         assert mine_count_after == engine.total_mines
 
+    def test_first_click_corner_top_left(self):
+        """Safe zone works correctly when first click is in the top-left corner."""
+        engine = GameEngine(9, 9, 10)
+        engine.reveal_cell(0, 0)
+        assert engine.first_click_done is True
+        for dr in range(-1, 2):
+            for dc in range(-1, 2):
+                nr, nc = 0 + dr, 0 + dc
+                if 0 <= nr < engine.grid.rows and 0 <= nc < engine.grid.cols:
+                    cell = engine.grid.get_cell(nr, nc)
+                    assert cell.is_mine is False, (
+                        f"Top-left corner safe zone violation at ({nr}, {nc})"
+                    )
+
+    def test_first_click_corner_bottom_right(self):
+        """Safe zone works correctly when first click is in the bottom-right corner."""
+        engine = GameEngine(9, 9, 10)
+        engine.reveal_cell(8, 8)
+        assert engine.first_click_done is True
+        for dr in range(-1, 2):
+            for dc in range(-1, 2):
+                nr, nc = 8 + dr, 8 + dc
+                if 0 <= nr < engine.grid.rows and 0 <= nc < engine.grid.cols:
+                    cell = engine.grid.get_cell(nr, nc)
+                    assert cell.is_mine is False, (
+                        f"Bottom-right corner safe zone violation at ({nr}, {nc})"
+                    )
+
+    def test_first_click_corner_bottom_left(self):
+        """Safe zone works correctly when first click is in the bottom-left corner."""
+        engine = GameEngine(9, 9, 10)
+        engine.reveal_cell(8, 0)
+        assert engine.first_click_done is True
+        for dr in range(-1, 2):
+            for dc in range(-1, 2):
+                nr, nc = 8 + dr, 0 + dc
+                if 0 <= nr < engine.grid.rows and 0 <= nc < engine.grid.cols:
+                    cell = engine.grid.get_cell(nr, nc)
+                    assert cell.is_mine is False, (
+                        f"Bottom-left corner safe zone violation at ({nr}, {nc})"
+                    )
+
+    def test_first_click_corner_top_right(self):
+        """Safe zone works correctly when first click is in the top-right corner."""
+        engine = GameEngine(9, 9, 10)
+        engine.reveal_cell(0, 8)
+        assert engine.first_click_done is True
+        for dr in range(-1, 2):
+            for dc in range(-1, 2):
+                nr, nc = 0 + dr, 8 + dc
+                if 0 <= nr < engine.grid.rows and 0 <= nc < engine.grid.cols:
+                    cell = engine.grid.get_cell(nr, nc)
+                    assert cell.is_mine is False, (
+                        f"Top-right corner safe zone violation at ({nr}, {nc})"
+                    )
+
+    def test_first_click_edge_top(self):
+        """Safe zone works correctly when first click is on the top edge."""
+        engine = GameEngine(9, 9, 10)
+        engine.reveal_cell(0, 4)
+        assert engine.first_click_done is True
+        for dr in range(-1, 2):
+            for dc in range(-1, 2):
+                nr, nc = 0 + dr, 4 + dc
+                if 0 <= nr < engine.grid.rows and 0 <= nc < engine.grid.cols:
+                    cell = engine.grid.get_cell(nr, nc)
+                    assert cell.is_mine is False, (
+                        f"Top edge safe zone violation at ({nr}, {nc})"
+                    )
+
+    def test_first_click_edge_bottom(self):
+        """Safe zone works correctly when first click is on the bottom edge."""
+        engine = GameEngine(9, 9, 10)
+        engine.reveal_cell(8, 4)
+        assert engine.first_click_done is True
+        for dr in range(-1, 2):
+            for dc in range(-1, 2):
+                nr, nc = 8 + dr, 4 + dc
+                if 0 <= nr < engine.grid.rows and 0 <= nc < engine.grid.cols:
+                    cell = engine.grid.get_cell(nr, nc)
+                    assert cell.is_mine is False, (
+                        f"Bottom edge safe zone violation at ({nr}, {nc})"
+                    )
+
+    def test_first_click_edge_left(self):
+        """Safe zone works correctly when first click is on the left edge."""
+        engine = GameEngine(9, 9, 10)
+        engine.reveal_cell(4, 0)
+        assert engine.first_click_done is True
+        for dr in range(-1, 2):
+            for dc in range(-1, 2):
+                nr, nc = 4 + dr, 0 + dc
+                if 0 <= nr < engine.grid.rows and 0 <= nc < engine.grid.cols:
+                    cell = engine.grid.get_cell(nr, nc)
+                    assert cell.is_mine is False, (
+                        f"Left edge safe zone violation at ({nr}, {nc})"
+                    )
+
+    def test_first_click_edge_right(self):
+        """Safe zone works correctly when first click is on the right edge."""
+        engine = GameEngine(9, 9, 10)
+        engine.reveal_cell(4, 8)
+        assert engine.first_click_done is True
+        for dr in range(-1, 2):
+            for dc in range(-1, 2):
+                nr, nc = 4 + dr, 8 + dc
+                if 0 <= nr < engine.grid.rows and 0 <= nc < engine.grid.cols:
+                    cell = engine.grid.get_cell(nr, nc)
+                    assert cell.is_mine is False, (
+                        f"Right edge safe zone violation at ({nr}, {nc})"
+                    )
+
+    def test_first_click_small_grid(self):
+        """Safe zone works correctly on a small grid where safe zone overlaps significantly."""
+        engine = GameEngine(5, 5, 3)
+        engine.reveal_cell(2, 2)
+        assert engine.first_click_done is True
+        for dr in range(-1, 2):
+            for dc in range(-1, 2):
+                nr, nc = 2 + dr, 2 + dc
+                if 0 <= nr < engine.grid.rows and 0 <= nc < engine.grid.cols:
+                    cell = engine.grid.get_cell(nr, nc)
+                    assert cell.is_mine is False, (
+                        f"Small grid safe zone violation at ({nr}, {nc})"
+                    )
+
+    def test_first_click_multiple_positions(self):
+        """Test first click safety at many different positions across the grid."""
+        test_positions = [
+            (0, 0),
+            (0, 4),
+            (0, 8),  # top row
+            (4, 0),
+            (4, 4),
+            (4, 8),  # middle row
+            (8, 0),
+            (8, 4),
+            (8, 8),  # bottom row
+        ]
+        for row, col in test_positions:
+            test_engine = GameEngine(9, 9, 10)
+            test_engine.reveal_cell(row, col)
+            assert test_engine.first_click_done is True
+            clicked_cell = test_engine.grid.get_cell(row, col)
+            assert clicked_cell.is_mine is False, (
+                f"First click at ({row}, {col}) landed on a mine!"
+            )
+            for dr in range(-1, 2):
+                for dc in range(-1, 2):
+                    nr, nc = row + dr, col + dc
+                    if (
+                        0 <= nr < test_engine.grid.rows
+                        and 0 <= nc < test_engine.grid.cols
+                    ):
+                        neighbor = test_engine.grid.get_cell(nr, nc)
+                        assert neighbor.is_mine is False, (
+                            f"Safe zone violation at ({nr}, {nc}) for click at ({row}, {col})"
+                        )
+
+    def test_first_click_subsequent_clicks_normal(self):
+        """Multiple reveals after first click follow normal rules."""
+        engine = GameEngine(9, 9, 10)
+        engine.reveal_cell(4, 4)
+        assert engine.first_click_done is True
+        result1 = engine.reveal_cell(5, 5)
+        assert result1 is not None
+        result2 = engine.reveal_cell(3, 3)
+        assert result2 is not None
+        assert engine.first_click_done is True
+
 
 class TestWinCondition:
     """Tests for win condition checking (STORY-005/STORY-008)."""
@@ -459,25 +629,19 @@ class TestFloodFill:
 
     def test_flood_fill_recurses_through_zeros(self):
         """AC2: The reveal process recurses through adjacent cells with 0 mines."""
-        engine = GameEngine(9, 9, 10)
-        engine.place_mines(0, 0)
+        # Create a controlled grid where we know flood fill will recurse
+        engine = GameEngine(7, 7, 1)
         engine.first_click_done = True
 
-        # Find a cell with 0 adjacent mines
-        zero_cell = None
-        for r in range(engine.grid.rows):
-            for c in range(engine.grid.cols):
-                cell = engine.grid.get_cell(r, c)
-                if not cell.is_mine and cell.adjacent_mines == 0:
-                    zero_cell = (r, c)
-                    break
-            if zero_cell:
-                break
+        # Place the mine at (6, 6) - far from the center
+        engine.grid.cells[6][6].is_mine = True
+        engine._calculate_adjacent_mine_counts()
 
-        assert zero_cell is not None
+        # Verify (3, 3) has 0 adjacent mines
+        assert engine.grid.get_cell(3, 3).adjacent_mines == 0
 
-        # Reveal the zero cell
-        engine.reveal_cell(zero_cell[0], zero_cell[1])
+        # Reveal the center cell
+        engine.reveal_cell(3, 3)
 
         # Count revealed cells - should be more than just the neighbors
         revealed_count = sum(

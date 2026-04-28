@@ -12,7 +12,7 @@ Generated from: `minesweeper.md`
 | STORY-004 | Custom Difficulty | High | Pending |
 | STORY-005 | Cell Interaction | High | Completed |
 | STORY-006 | Flood Fill | High | Completed |
-| STORY-007 | First Click Safety | High | Pending |
+| STORY-007 | First Click Safety | High | Completed |
 | STORY-008 | Game End Conditions | High | Pending |
 | STORY-009 | Timer | Medium | Pending |
 | STORY-010 | Mine Counter | Medium | Pending |
