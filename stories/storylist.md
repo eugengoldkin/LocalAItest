@@ -19,7 +19,7 @@ Generated from: `minesweeper.md`
 | STORY-011 | Difficulty Menu | Medium | Pending |
 | STORY-012 | New Game Button | Medium | Pending |
 | STORY-013 | Chording | Low (Optional) | Pending |
-| STORY-014 | Grid Rendering | High | Pending |
+| STORY-014 | Grid Rendering | High | Completed |
 | STORY-015 | Win/Loss Visual Feedback | Medium | Pending |
 | STORY-016 | Bug Fix Flaky Test Reveal Revealed Cell | Low | Pending |
 
