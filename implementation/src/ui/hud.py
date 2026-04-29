@@ -43,11 +43,11 @@ class HUD(tk.Frame):
     def update_mine_counter(self, count: int) -> None:
         """Update the mine counter display.
 
-        Args:
-            count: The number of remaining mines.
+        Supports negative numbers (e.g., -1) when more flags are placed
+        than mines exist.
 
-        STORY-001-T2: Stub implementation for HUD.update_mine_counter().
-        STORY-010: Implement mine counter update.
+        Args:
+            count: The number of remaining mines (can be negative).
         """
         self.mine_counter_label.config(text=f"Mines: {count}")
 

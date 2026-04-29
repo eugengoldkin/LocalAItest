@@ -31,7 +31,9 @@ class TestRevealCell:
     def test_reveal_revealed_cell_does_nothing(self):
         """AC2: Left-click on a revealed cell does nothing."""
         engine = GameEngine(9, 9, 10)
-        engine.place_mines(0, 0)
+        # Place mines excluding (5,5) to ensure it's safe
+        engine.place_mines(5, 5)
+        engine.first_click_done = True  # Prevent double mine placement on reveal
 
         engine.reveal_cell(5, 5)
         result = engine.reveal_cell(5, 5)

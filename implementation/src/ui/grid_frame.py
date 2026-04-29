@@ -75,6 +75,8 @@ class GridFrame(tk.Frame):
         self.on_timer_start: Optional[Callable[[], None]] = None
         # STORY-009: Callback for timer stop (cancel periodic updates)
         self.on_timer_stop: Optional[Callable[[], None]] = None
+        # STORY-010: Callback for mine counter updates
+        self.on_mine_counter_update: Optional[Callable[[int], None]] = None
 
         self.render()
 
@@ -287,6 +289,8 @@ class GridFrame(tk.Frame):
         - Toggles hidden <-> flagged
         - Does nothing on revealed cells
 
+        STORY-010: Update mine counter when flags are toggled.
+
         Args:
             row: Row index of the clicked cell.
             col: Column index of the clicked cell.
@@ -298,3 +302,7 @@ class GridFrame(tk.Frame):
 
         if success:
             self.update_cell(row, col)
+            # STORY-010: Update mine counter in real-time
+            remaining = self.game_engine.total_mines - self.game_engine.flags_placed
+            if self.on_mine_counter_update:
+                self.on_mine_counter_update(remaining)

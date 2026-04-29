@@ -4,7 +4,7 @@ STORY-003: Difficulty presets selection UI (dropdown).
 STORY-004: Custom difficulty input UI integration.
 STORY-005: Wire GameEngine to UI components for cell interaction.
 STORY-009: Timer integration (updates on first click and game end).
-STORY-010: Mine counter integration (stub for future).
+STORY-010: Mine counter integration (real-time updates via callback).
 STORY-012: New Game button (stub for future).
 STORY-008: Win/loss message dialog UI.
 
@@ -119,6 +119,18 @@ class MainWindow:
             self.root.after_cancel(self._timer_update_id)
             self._timer_update_id = None
 
+    # STORY-010: Mine counter display helper
+
+    def _update_mine_counter_display(self, remaining_mines: int) -> None:
+        """Update the mine counter label with the remaining mines.
+
+        Supports negative numbers when more flags are placed than mines exist.
+
+        Args:
+            remaining_mines: Number of remaining mines (total_mines - flags_placed).
+        """
+        self.mine_counter_label.config(text=f"Mines: {remaining_mines}")
+
     def _on_game_end(self, won: bool) -> None:
         """Handle game end by showing the appropriate dialog.
 
@@ -174,6 +186,8 @@ class MainWindow:
         # STORY-009: Wire up timer start/stop callbacks
         self.game_frame.on_timer_start = self._schedule_timer_update
         self.game_frame.on_timer_stop = self._cancel_timer_update
+        # STORY-010: Wire up mine counter update callback
+        self.game_frame.on_mine_counter_update = self._update_mine_counter_display
         self.game_frame.pack(expand=True, fill=tk.BOTH, padx=10, pady=5)
 
     def _on_difficulty_changed(self, event: tk.Event) -> None:
@@ -230,6 +244,8 @@ class MainWindow:
             self.game_frame.on_timer_update = self._update_timer_display
             self.game_frame.on_timer_start = self._schedule_timer_update
             self.game_frame.on_timer_stop = self._cancel_timer_update
+            # STORY-010: Wire up mine counter update callback
+            self.game_frame.on_mine_counter_update = self._update_mine_counter_display
             self.game_frame.pack(expand=True, fill=tk.BOTH, padx=10, pady=5)
 
     def run(self) -> None:
@@ -266,6 +282,8 @@ class MainWindow:
         self.game_frame.on_timer_update = self._update_timer_display
         self.game_frame.on_timer_start = self._schedule_timer_update
         self.game_frame.on_timer_stop = self._cancel_timer_update
+        # STORY-010: Wire up mine counter update callback
+        self.game_frame.on_mine_counter_update = self._update_mine_counter_display
         self.game_frame.pack(expand=True, fill=tk.BOTH, padx=10, pady=5)
 
     def change_difficulty(self, difficulty_name: str) -> None:
@@ -304,4 +322,6 @@ class MainWindow:
         self.game_frame.on_timer_update = self._update_timer_display
         self.game_frame.on_timer_start = self._schedule_timer_update
         self.game_frame.on_timer_stop = self._cancel_timer_update
+        # STORY-010: Wire up mine counter update callback
+        self.game_frame.on_mine_counter_update = self._update_mine_counter_display
         self.game_frame.pack(expand=True, fill=tk.BOTH, padx=10, pady=5)
