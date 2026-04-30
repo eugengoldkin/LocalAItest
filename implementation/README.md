@@ -124,4 +124,14 @@ This project is open source.
 
 ---
 
+### STORY-012: New Game Button
+- Added New Game button (smiley face emoji) in the HUD between mine counter and timer
+- Button displays 🙂 smiling face by default, changes to 😮 surprised face on press
+- Button wired to `start_new_game()` method which resets game state, timer, mine counter, and grid
+- Visual feedback: button relief changes from raised to sunken on mouse press, restores on release
+- All game state properly resets: game_over, game_won, first_click_done, flags, timer
+- First-click safety re-established on new game
+- Added 15 unit tests in `tests/test_new_game_button.py` covering visibility, reset behavior, visual feedback, and integration
+
+---
 

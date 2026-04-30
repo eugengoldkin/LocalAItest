@@ -6,7 +6,7 @@ STORY-005: Wire GameEngine to UI components for cell interaction.
 STORY-009: Timer integration (updates on first click and game end).
 STORY-010: Mine counter integration (real-time updates via callback).
 STORY-011: Difficulty menu with visual indicator and mid-game confirmation.
-STORY-012: New Game button (stub for future).
+STORY-012: New Game button (smiley face) with visual feedback on click.
 STORY-008: Win/loss message dialog UI.
 
 The main Tkinter application window.
@@ -60,7 +60,7 @@ class MainWindow:
             total_mines=preset.mines,
         )
 
-        # HUD frame (for mine counter and timer) - STORY-009, STORY-010
+        # HUD frame (for mine counter, new game button, and timer) - STORY-009, STORY-010, STORY-012
         self.hud_frame: tk.Frame = tk.Frame(self.root)
         self.hud_frame.pack(fill=tk.X, padx=10, pady=5)
 
@@ -71,6 +71,24 @@ class MainWindow:
             font=("Courier", 16),
         )
         self.mine_counter_label.pack(side=tk.LEFT, padx=10)
+
+        # STORY-012: New Game button (smiley face)
+        self.new_game_button: tk.Button = tk.Button(
+            self.hud_frame,
+            text="\U0001f642",  # 🙂 Smiling face emoji
+            font=("Arial", 14),
+            width=2,
+            height=1,
+            relief=tk.RAISED,
+            bd=2,
+            command=self.start_new_game,
+        )
+        self.new_game_button.pack(side=tk.LEFT, padx=10)
+        # Track button state for visual feedback
+        self._new_game_pressed: bool = False
+        # STORY-012: Bind mouse events for visual feedback
+        self.new_game_button.bind("<ButtonPress-1>", self._on_new_game_press)
+        self.new_game_button.bind("<ButtonRelease-1>", self._on_new_game_release)
 
         # Timer label
         self.timer_label: tk.Label = tk.Label(
@@ -144,6 +162,30 @@ class MainWindow:
             result_callback=self.start_new_game,
         )
         dialog.grab_set()  # Modal: block interaction with main window
+
+    # STORY-012: New Game button visual feedback
+
+    def _on_new_game_press(self, event: tk.Event) -> None:
+        """Handle mouse press on the New Game button.
+
+        Changes the smiley face to a surprised/open-mouth expression.
+        """
+        self._new_game_pressed = True
+        self.new_game_button.config(
+            text="\U0001f62e",  # 😮 Surprised face
+            relief=tk.SUNKEN,
+        )
+
+    def _on_new_game_release(self, event: tk.Event) -> None:
+        """Handle mouse release on the New Game button.
+
+        Restores the smiley face to the normal expression.
+        """
+        self._new_game_pressed = False
+        self.new_game_button.config(
+            text="\U0001f642",  # 🙂 Smiling face
+            relief=tk.RAISED,
+        )
 
     def _build_ui(self) -> None:
         """Build the initial UI structure.
@@ -336,6 +378,12 @@ class MainWindow:
         STORY-012: New Game button resets the game state and re-renders the grid.
         STORY-009: Timer resets to 00:00 on new game.
         """
+        # Ensure button returns to normal state
+        self._new_game_pressed = False
+        self.new_game_button.config(
+            text="\U0001f642",  # 🙂 Smiling face
+            relief=tk.RAISED,
+        )
         self.game_engine.reset()
         self.mine_counter_label.config(text=f"Mines: {self.game_engine.total_mines}")
         self.timer_label.config(text="00:00")
