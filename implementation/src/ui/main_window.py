@@ -5,6 +5,7 @@ STORY-004: Custom difficulty input UI integration.
 STORY-005: Wire GameEngine to UI components for cell interaction.
 STORY-009: Timer integration (updates on first click and game end).
 STORY-010: Mine counter integration (real-time updates via callback).
+STORY-011: Difficulty menu with visual indicator and mid-game confirmation.
 STORY-012: New Game button (stub for future).
 STORY-008: Win/loss message dialog UI.
 
@@ -38,6 +39,7 @@ class MainWindow:
         hud_frame: Frame containing the HUD (mine counter, timer).
         difficulty: Currently selected difficulty preset name.
         difficulty_var: Tkinter variable for the difficulty dropdown.
+        difficulty_label: Label showing the current difficulty for visual feedback.
     """
 
     def __init__(self) -> None:
@@ -172,6 +174,15 @@ class MainWindow:
             self._on_difficulty_changed,
         )
 
+        # STORY-011: Visual indicator for current difficulty
+        self.difficulty_label: tk.Label = tk.Label(
+            difficulty_frame,
+            text=f"Current: {self.difficulty}",
+            font=("Arial", 10, "italic"),
+            fg="#555555",
+        )
+        self.difficulty_label.pack(side=tk.LEFT, padx=(0, 10))
+
         # Create game grid frame with game engine reference
         self.game_frame = GridFrame(
             self.root,
@@ -198,6 +209,8 @@ class MainWindow:
 
         STORY-004: Handle "Custom" selection by showing the custom difficulty dialog.
 
+        STORY-011: Prompt for confirmation if the game is in progress.
+
         Args:
             event: The Tkinter combobox selection event.
         """
@@ -212,7 +225,17 @@ class MainWindow:
 
         STORY-004: Show the custom difficulty dialog. If the user provides
         valid inputs, initialize a new game with those parameters.
+
+        STORY-011: Prompt for confirmation if the game is in progress.
         """
+        # STORY-011: Check if game is in progress
+        if not self.game_engine.game_over and self.game_engine.first_click_done:
+            result = self._show_difficulty_change_confirmation()
+            if not result:
+                # User cancelled, reset combobox to previous value
+                self.difficulty_var.set(self.difficulty)
+                return
+
         dialog = CustomDifficultyDialog(self.root)
         self.root.wait_window(dialog)
 
@@ -224,6 +247,7 @@ class MainWindow:
                 cols=custom_input.cols,
                 total_mines=custom_input.mines,
             )
+            self.difficulty_label.config(text=f"Current: {self.difficulty}")
             self.mine_counter_label.config(
                 text=f"Mines: {self.game_engine.total_mines}"
             )
@@ -247,6 +271,55 @@ class MainWindow:
             # STORY-010: Wire up mine counter update callback
             self.game_frame.on_mine_counter_update = self._update_mine_counter_display
             self.game_frame.pack(expand=True, fill=tk.BOTH, padx=10, pady=5)
+
+    def _show_difficulty_change_confirmation(self) -> bool:
+        """Show a confirmation dialog for changing difficulty mid-game.
+
+        STORY-011: Prompt the user to confirm or cancel a difficulty change.
+
+        Returns:
+            True if the user confirmed the change, False if cancelled.
+        """
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Change Difficulty")
+        dialog.grab_set()
+        dialog.resizable(False, False)
+
+        tk.Label(
+            dialog,
+            text="A new game will start. Continue?",
+            font=("Arial", 12),
+        ).pack(pady=15)
+
+        def on_confirm():
+            dialog.destroy()
+
+        def on_cancel():
+            # Reset to previous difficulty
+            self.difficulty_var.set(self.difficulty)
+            dialog.destroy()
+
+        button_frame = tk.Frame(dialog)
+        button_frame.pack(pady=10)
+
+        tk.Button(
+            button_frame,
+            text="Continue",
+            font=("Arial", 10),
+            command=on_confirm,
+            width=10,
+        ).pack(side=tk.LEFT, padx=10)
+
+        tk.Button(
+            button_frame,
+            text="Cancel",
+            font=("Arial", 10),
+            command=on_cancel,
+            width=10,
+        ).pack(side=tk.LEFT, padx=10)
+
+        self.root.wait_window(dialog)
+        return dialog.winfo_exists()
 
     def run(self) -> None:
         """Start the Tkinter event loop."""
@@ -289,11 +362,22 @@ class MainWindow:
     def change_difficulty(self, difficulty_name: str) -> None:
         """Change the game difficulty and start a new game.
 
+        STORY-011: Update the visual indicator to show the new difficulty.
+        Prompt for confirmation if the game is in progress.
+
         Args:
             difficulty_name: Name of the difficulty preset (e.g., 'Beginner').
         """
         if difficulty_name not in DIFFICULTY_PRESETS:
             return
+
+        # STORY-011: Check if game is in progress
+        if not self.game_engine.game_over and self.game_engine.first_click_done:
+            result = self._show_difficulty_change_confirmation()
+            if not result:
+                # User cancelled, reset combobox to previous value
+                self.difficulty_var.set(self.difficulty)
+                return
 
         self.difficulty = difficulty_name
         preset = DIFFICULTY_PRESETS[difficulty_name]
@@ -304,6 +388,8 @@ class MainWindow:
             total_mines=preset.mines,
         )
 
+        # STORY-011: Update the visual indicator
+        self.difficulty_label.config(text=f"Current: {self.difficulty}")
         self.mine_counter_label.config(text=f"Mines: {self.game_engine.total_mines}")
         self.timer_label.config(text="00:00")
         self._cancel_timer_update()

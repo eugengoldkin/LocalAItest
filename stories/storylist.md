@@ -16,7 +16,7 @@ Generated from: `minesweeper.md`
 | STORY-008 | Game End Conditions | High | Completed |
 | STORY-009 | Timer | Medium | Completed |
 | STORY-010 | Mine Counter | Medium | Completed |
-| STORY-011 | Difficulty Menu | Medium | Pending |
+| STORY-011 | Difficulty Menu | Medium | Completed |
 | STORY-012 | New Game Button | Medium | Pending |
 | STORY-013 | Chording | Low (Optional) | Pending |
 | STORY-014 | Grid Rendering | High | Completed |
