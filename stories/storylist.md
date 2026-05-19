@@ -20,7 +20,7 @@ Generated from: `minesweeper.md`
 | STORY-012 | New Game Button | Medium | Completed |
 | STORY-013 | Chording | Low (Optional) | Pending |
 | STORY-014 | Grid Rendering | High | Completed |
-| STORY-015 | Win/Loss Visual Feedback | Medium | Pending |
+| STORY-015 | Win/Loss Visual Feedback | Medium | Completed |
 | STORY-016 | Bug Fix Flaky Test Reveal Revealed Cell | Low | Pending |
 
 ## Dependency Graph

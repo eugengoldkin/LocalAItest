@@ -155,11 +155,14 @@ class MainWindow:
         """Handle game end by showing the appropriate dialog.
 
         STORY-008: Show win/loss dialog when the game ends.
+        STORY-015: Pass elapsed time to the dialog for win state.
         """
+        elapsed_time = self.game_engine.get_elapsed_time()
         dialog = GameEndDialog(
             self.root,
             won=won,
             result_callback=self.start_new_game,
+            elapsed_time=elapsed_time,
         )
         dialog.grab_set()  # Modal: block interaction with main window
 
