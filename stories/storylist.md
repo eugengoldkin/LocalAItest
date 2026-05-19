@@ -21,7 +21,7 @@ Generated from: `minesweeper.md`
 | STORY-013 | Chording | Low (Optional) | Pending |
 | STORY-014 | Grid Rendering | High | Completed |
 | STORY-015 | Win/Loss Visual Feedback | Medium | Completed |
-| STORY-016 | Bug Fix Flaky Test Reveal Revealed Cell | Low | Pending |
+| STORY-016 | Bug Fix Flaky Test Reveal Revealed Cell | Low | Completed |
 
 ## Dependency Graph
 
@@ -148,6 +148,7 @@ STORY-001 (Project Setup)
 - **Dependencies**: STORY-005, STORY-006
 - **Tasks**: 7 tasks
 - **Note**: Optional feature
+- **Status**: ✅ Completed
 
 ### STORY-014 - Grid Rendering
 - **Description**: Implement visual rendering of the game grid with colors and icons.

@@ -225,6 +225,7 @@ class GridFrame(tk.Frame):
         - Reveals hidden cells
         - Does nothing on revealed cells
         - Does nothing on flagged cells
+        STORY-013: Chording - left-click on revealed numbered cell triggers chording
 
         Args:
             row: Row index of the clicked cell.
@@ -232,6 +233,31 @@ class GridFrame(tk.Frame):
         """
         if self.game_engine.game_over:
             return
+
+        cell = self.game_engine.grid.get_cell(row, col)
+
+        # STORY-013: Chording - if clicking on a revealed numbered cell, try chording
+        if (
+            cell is not None
+            and cell.state == CellState.REVEALED
+            and cell.adjacent_mines > 0
+        ):
+            chording_triggered = self.game_engine.chord(row, col)
+            if chording_triggered:
+                self.update_cell(row, col)
+                # STORY-009: Update timer display
+                if self.on_timer_update:
+                    self.on_timer_update(self.game_engine.get_elapsed_time())
+                # STORY-009: Stop periodic timer updates on game over
+                if self.game_engine.game_over:
+                    if self.on_timer_stop:
+                        self.on_timer_stop()
+                    self.update_all_cells()
+                    if self.on_timer_update:
+                        self.on_timer_update(self.game_engine.get_elapsed_time())
+                    if self.on_game_end:
+                        self.on_game_end(False)
+                return
 
         new_state = self.game_engine.reveal_cell(row, col)
 

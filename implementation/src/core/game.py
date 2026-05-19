@@ -375,6 +375,94 @@ class GameEngine:
                     count += 1
         return count
 
+    def chord(self, row: int, col: int) -> bool:
+        """Chord on a revealed numbered cell.
+
+        STORY-013: When a numbered cell has the correct number of flags around it,
+        clicking it reveals all remaining unflagged neighbors.
+
+        - Right-click on a revealed numbered cell triggers chording
+        - Chording only activates when the number of adjacent flags matches the cell's mine count
+        - All unflagged neighbors are revealed when chording activates
+        - If chording triggers a mine, the game ends (loss)
+        - If chording triggers flood fill (0 adjacent mines), flood fill is applied
+        - Chording does nothing if the flag count doesn't match the cell's mine count
+        - Chording is disabled during game over states
+
+        Args:
+            row: Row index of the cell to chord.
+            col: Column index of the cell to chord.
+
+        Returns:
+            True if chording was performed, False otherwise.
+        """
+        # Chording is disabled during game over states
+        if self.game_over:
+            return False
+
+        cell = self.grid.get_cell(row, col)
+        if cell is None:
+            return False
+
+        # Only revealed numbered cells can be chored
+        if cell.state != CellState.REVEALED or cell.adjacent_mines == 0:
+            return False
+
+        # Count adjacent flags
+        adjacent_flags = self._count_adjacent_flags(row, col)
+
+        # Chording does nothing if the flag count doesn't match the cell's mine count
+        if adjacent_flags != cell.adjacent_mines:
+            return False
+
+        # Reveal all unflagged neighbors
+        neighbors_revealed = False
+        for dr in range(-1, 2):
+            for dc in range(-1, 2):
+                if dr == 0 and dc == 0:
+                    continue
+                nr, nc = row + dr, col + dc
+                neighbor = self.grid.get_cell(nr, nc)
+                if neighbor is not None and neighbor.state == CellState.HIDDEN:
+                    # Reveal the neighbor
+                    if neighbor.is_mine:
+                        # If chording triggers a mine, the game ends (loss)
+                        neighbor.state = CellState.REVEALED
+                        self.game_over = True
+                        self._reveal_all_mines()
+                        # STORY-009: Stop timer on game over (loss)
+                        self._stop_timer()
+                        return True
+                    else:
+                        neighbor.state = CellState.REVEALED
+                        neighbors_revealed = True
+                        # If chording triggers flood fill (0 adjacent mines), flood fill is applied
+                        if neighbor.adjacent_mines == 0:
+                            self._flood_fill(nr, nc)
+
+        return neighbors_revealed
+
+    def _count_adjacent_flags(self, row: int, col: int) -> int:
+        """Count the number of flags adjacent to the cell at (row, col).
+
+        Args:
+            row: Row index of the cell.
+            col: Column index of the cell.
+
+        Returns:
+            The count of flagged neighboring cells.
+        """
+        count = 0
+        for dr in range(-1, 2):
+            for dc in range(-1, 2):
+                if dr == 0 and dc == 0:
+                    continue
+                nr, nc = row + dr, col + dc
+                neighbor = self.grid.get_cell(nr, nc)
+                if neighbor is not None and neighbor.state == CellState.FLAGGED:
+                    count += 1
+        return count
+
     def _reveal_all_mines(self) -> None:
         """Reveal all mines on the board for game over display.
 
